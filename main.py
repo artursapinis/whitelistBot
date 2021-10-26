@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from dislash import InteractionClient, user_command, ContextMenuInteraction, application_commands, InvokableUserCommand
+from dislash import InteractionClient, ContextMenuInteraction, application_commands
 import logging
 
 
