@@ -26,6 +26,7 @@ class Commands(commands.Cog):
     async def list(self, ctx):
         user = await self.bot.fetch_user(ctx.author.id)
         await user.send(file=discord.File('resources/whitelist.json'))
+        await ctx.send('Done! :thumbsup:', ephemeral=True)
 
     @slash_command(description='Whitelist',
                    options=[Option('adress', description='address', type=OptionType.STRING, required=True)])
