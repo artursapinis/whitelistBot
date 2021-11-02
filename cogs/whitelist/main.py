@@ -1,6 +1,8 @@
 import logging
 import json
-
+from os import linesep
+import io
+from io import StringIO
 import discord
 import dislash
 from discord.ext import commands
@@ -14,44 +16,82 @@ class Commands(commands.Cog):
         self.bot = bot
         self.con = sqlite3.connect('resources/database.db')
         c = self.con.cursor()
-        c.execute('''CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id STRING)''')
+        c.execute(
+            '''CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id STRING, address STRING)''')
         c.close()
 
     @commands.Cog.listener()
     async def on_ready(self):
         logging.info('cogs.whitelist.main ON_READY')
 
-    @slash_command(description='The list')
-    @dislash.is_owner()
-    async def list(self, ctx):
-        user = await self.bot.fetch_user(ctx.author.id)
-        await user.send(file=discord.File('resources/whitelist.json'))
-        await ctx.send('Done! :thumbsup:', ephemeral=True)
+    @commands.Cog.listener()
+    async def on_message(self, message):
+        if message.author == self.bot.user:
+            return
+
+        if not message.content == '.list':
+            return
+
+        if not message.guild:
+            try:
+                guild = await self.bot.fetch_guild(902669584274964500)
+
+                if message.author.id == guild.owner_id:
+                    c = self.con.cursor()
+                    r = c.execute('SELECT * FROM users').fetchall()
+                    c.close()
+                    data = {}
+                    for user in r:
+                        data[str(user[1])] = user[2]
+
+                    file = discord.File(fp=StringIO(json.dumps(data, indent=3)), filename='whitelist.json')
+                    await message.channel.send(file=file)
+
+            except discord.errors.Forbidden:
+                pass
+        else:
+            pass
 
     @slash_command(description='Whitelist',
-                   options=[Option('adress', description='address', type=OptionType.STRING, required=True)])
+                   options=[Option('address', description='address', type=OptionType.STRING, required=True)])
     @dislash.has_role(902671766156095549)
-    async def whitelist(self, ctx, adress = None):
-        if not adress.startswith('0x'):
-            return await ctx.send('Your message must start with 0x', ephemeral=True)
+    async def whitelist(self, ctx, address=None):
+        if not address.startswith('0x'):
+            return await ctx.send(':red_circle: Your address must start with 0x', ephemeral=True)
 
-        c = self.con.cursor()
-        r = c.execute(f'SELECT EXISTS(SELECT 1 FROM users WHERE user_id=?)', (ctx.author.id, ))
-        f = r.fetchone()[0]
-        if f == 1:
-            return await ctx.send('You already used this command!', ephemeral=True)
-
-        with open("resources/whitelist.json", "r+") as whitelist:
-            data = json.load(whitelist)
-            data.append(adress)
-            whitelist.seek(0)
-            json.dump(data, whitelist)
-            execute = f'INSERT INTO users (user_id) VALUES({str(ctx.author.id)})'
-            c.execute(execute)
+        try:
+            c = self.con.cursor()
+            r = c.execute(f'SELECT EXISTS(SELECT 1 FROM users WHERE user_id=?)', (str(ctx.author.id),))
+            f = r.fetchone()[0]
+            if f == 1:
+                update = f"UPDATE users SET address = '{address}' WHERE user_id = {str(ctx.author.id)}"
+                c.execute(update)
+                self.con.commit()
+                c.close()
+                return await ctx.send(f':white_check_mark: You changed your address to: **{address}**', ephemeral=True)
+            c.execute(f'INSERT INTO users (user_id, address) VALUES("{str(ctx.author.id)}", "{address}")')
             self.con.commit()
+            c.close()
+            await ctx.send(f':white_check_mark: Registered! Address: **{address}**', ephemeral=True)
+        except BaseException as e:
+            logging.exception(e)
+            await ctx.send(':red_circle: Something went wrong! Try again!', ephemeral=True)
 
-        c.close()
-        await ctx.send('Registered!', ephemeral=True)
+    @slash_command(description='Info about your whitelist!')
+    @dislash.has_role(902671766156095549)
+    async def info(self, ctx):
+        try:
+            c = self.con.cursor()
+            r = c.execute(f'SELECT EXISTS(SELECT 1 FROM users WHERE user_id=?)', (str(ctx.author.id),))
+            f = r.fetchone()[0]
+            if f == 1:
+                get_user_address = f'SELECT address FROM users WHERE user_id=?'
+                c.execute(get_user_address, (str(ctx.author.id),))
+                resp = c.fetchall()[0][0]
+                return await ctx.send(f':green_circle: Your current address is: **{resp}**', ephemeral=True)
+        except BaseException as e:
+            logging.exception(e)
+            await ctx.send(':red_circle: Something went wrong! Try again!', ephemeral=True)
 
 
 def setup(bot):
