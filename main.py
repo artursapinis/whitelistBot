@@ -44,6 +44,6 @@ async def on_ready():
 @client.event
 async def on_slash_command_error(inter: ContextMenuInteraction, error):
     if isinstance(error, application_commands.errors.MissingRole):
-        await inter.respond('ERROR! You are missing the role!', ephemeral=True)
+        await inter.respond('ERROR! You are missing the whitelist role!', ephemeral=True)
 
 client.run('OTA0ODk4NjIzOTgzMjAyMzE1.YYCOhA.b4HzhLEYhchRcVlkGJGrMYm10OU')

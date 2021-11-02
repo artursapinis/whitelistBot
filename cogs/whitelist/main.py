@@ -1,7 +1,5 @@
 import logging
 import json
-from os import linesep
-import io
 from io import StringIO
 import discord
 import dislash
@@ -34,7 +32,7 @@ class Commands(commands.Cog):
 
         if not message.guild:
             try:
-                guild = await self.bot.fetch_guild(902669584274964500)
+                guild = await self.bot.fetch_guild(896294632353304616)
 
                 if message.author.id == guild.owner_id:
                     c = self.con.cursor()
@@ -54,7 +52,7 @@ class Commands(commands.Cog):
 
     @slash_command(description='Whitelist',
                    options=[Option('address', description='address', type=OptionType.STRING, required=True)])
-    @dislash.has_role(902671766156095549)
+    @dislash.has_role(902919803034013726)
     async def whitelist(self, ctx, address=None):
         if not address.startswith('0x'):
             return await ctx.send(':red_circle: Your address must start with 0x', ephemeral=True)
@@ -78,7 +76,7 @@ class Commands(commands.Cog):
             await ctx.send(':red_circle: Something went wrong! Try again!', ephemeral=True)
 
     @slash_command(description='Info about your whitelist!')
-    @dislash.has_role(902671766156095549)
+    @dislash.has_role(902919803034013726)
     async def info(self, ctx):
         try:
             c = self.con.cursor()
